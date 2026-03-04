@@ -23,12 +23,12 @@ final class Brick: SKSpriteNode {
 
     let brickType: BrickType
 
-    init(type: BrickType) {
+    init(type: BrickType, size: CGSize = Brick.size) {
         self.brickType = type
-        super.init(texture: nil, color: type.color, size: Brick.size)
+        super.init(texture: nil, color: type.color, size: size)
         name = "brick"
 
-        let body = SKPhysicsBody(rectangleOf: Brick.size)
+        let body = SKPhysicsBody(rectangleOf: size)
         body.categoryBitMask    = PhysicsCategory.brick
         body.contactTestBitMask = PhysicsCategory.ball
         body.collisionBitMask   = PhysicsCategory.ball
@@ -38,11 +38,12 @@ final class Brick: SKSpriteNode {
         physicsBody = body
 
         // Rounded visual
-        let shape = SKShapeNode(rectOf: Brick.size, cornerRadius: 5)
+        let shape = SKShapeNode(rectOf: size, cornerRadius: 5)
         shape.fillColor = type.color
         shape.strokeColor = SKColor.black.withAlphaComponent(0.25)
         shape.lineWidth = 1
-        let rendered = SKView().texture(from: shape, crop: CGRect(origin: CGPoint(x: -Brick.size.width / 2, y: -Brick.size.height / 2), size: Brick.size))
+        let cropRect = CGRect(origin: CGPoint(x: -size.width / 2, y: -size.height / 2), size: size)
+        let rendered = SKView().texture(from: shape, crop: cropRect)
         self.texture = rendered
         self.color = .white
         self.colorBlendFactor = 0
