@@ -54,3 +54,10 @@ playground.xcworkspace
 
 # Env files
 .env
+
+# Python
+backend/venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+backend/*.db

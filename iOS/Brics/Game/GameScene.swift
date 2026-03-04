@@ -15,11 +15,15 @@ final class GameScene: SKScene, SKPhysicsContactDelegate {
     private let brickSpacingX: CGFloat = 4
     private let brickSpacingY: CGFloat = 6
 
+    // MARK: - Callbacks
+    var onGameEnd: ((Int, Int, Double) -> Void)?   // (score, level, durationSecs)
+
     // MARK: - State
     private(set) var state: GameState = .waiting
     private var lives = 3
     private var score = 0
     private var level = 1
+    private var gameStartTime: Date?
 
     // MARK: - Nodes
     private var ball: Ball!
@@ -127,8 +131,11 @@ final class GameScene: SKScene, SKPhysicsContactDelegate {
 
     private func setupBricks() {
         bricks.removeAll()
-        let totalGridWidth = CGFloat(cols) * Brick.size.width + CGFloat(cols - 1) * brickSpacingX
-        let startX = (size.width - totalGridWidth) / 2 + Brick.size.width / 2
+        let sideMargin: CGFloat = 8
+        let brickW = floor((size.width - 2 * sideMargin - CGFloat(cols - 1) * brickSpacingX) / CGFloat(cols))
+        let brickH: CGFloat = 22
+        let brickSize = CGSize(width: brickW, height: brickH)
+        let startX = sideMargin + brickW / 2
         let startY = size.height - 120
 
         let colorPalette: [SKColor] = [
@@ -141,14 +148,10 @@ final class GameScene: SKScene, SKPhysicsContactDelegate {
 
         for row in 0..<rows {
             for col in 0..<cols {
-                let isBorder = row == 0 || row == rows - 1 || col == 0 || col == cols - 1
-                let type: BrickType = isBorder
-                    ? .indestructible
-                    : .destructible(color: colorPalette[row % colorPalette.count])
-
-                let brick = Brick(type: type)
-                let x = startX + CGFloat(col) * (Brick.size.width + brickSpacingX)
-                let y = startY - CGFloat(row) * (Brick.size.height + brickSpacingY)
+                let type: BrickType = .destructible(color: colorPalette[row % colorPalette.count])
+                let brick = Brick(type: type, size: brickSize)
+                let x = startX + CGFloat(col) * (brickW + brickSpacingX)
+                let y = startY - CGFloat(row) * (brickH + brickSpacingY)
                 brick.position = CGPoint(x: x, y: y)
                 addChild(brick)
                 bricks.append(brick)
@@ -235,6 +238,7 @@ final class GameScene: SKScene, SKPhysicsContactDelegate {
 
         switch state {
         case .waiting:
+            if gameStartTime == nil { gameStartTime = Date() }
             state = .playing
             hideMessage()
             ball.launch()
@@ -335,15 +339,23 @@ final class GameScene: SKScene, SKPhysicsContactDelegate {
         state = .gameOver
         ball.physicsBody?.velocity = .zero
         showMessage("GAME OVER\nTap to restart")
+        fireGameEnd()
     }
 
     private func triggerLevelComplete() {
         state = .levelComplete
         ball.physicsBody?.velocity = .zero
         showMessage("YOU WIN! 🎉\nScore: \(score)\nTap to play again")
+        fireGameEnd()
+    }
+
+    private func fireGameEnd() {
+        let duration = gameStartTime.map { Date().timeIntervalSince($0) } ?? 1
+        onGameEnd?(score, level, max(duration, 0.1))
     }
 
     private func resetGame() {
+        gameStartTime = nil
         // Remove all brick nodes
         bricks.forEach { $0.removeFromParent() }
         bricks.removeAll()
