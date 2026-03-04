@@ -1,0 +1,19 @@
+name: Brics
+options:
+  bundleIdPrefix: com.brics
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  Brics:
+    type: application
+    platform: iOS
+    sources: [Brics]
+    settings:
+      base:
+        SWIFT_VERSION: 5.10
+        PRODUCT_BUNDLE_IDENTIFIER: com.brics.app
+    info:
+      path: Brics/App/Info.plist
+    dependencies:
+      - framework: SpriteKit.framework
+        embed: false
