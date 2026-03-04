@@ -21,7 +21,7 @@ final class Paddle: SKSpriteNode {
         let shape = SKShapeNode(rectOf: Paddle.size, cornerRadius: 9)
         shape.fillColor = .white
         shape.strokeColor = .clear
-        let rendered = SKView().texture(from: shape, rect: CGRect(origin: CGPoint(x: -Paddle.size.width / 2, y: -Paddle.size.height / 2), size: Paddle.size))
+        let rendered = SKView().texture(from: shape, crop: CGRect(origin: CGPoint(x: -Paddle.size.width / 2, y: -Paddle.size.height / 2), size: Paddle.size))
         self.texture = rendered
     }
 

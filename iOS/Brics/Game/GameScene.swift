@@ -206,6 +206,7 @@ final class GameScene: SKScene, SKPhysicsContactDelegate {
         messageLabel.fontSize = 28
         messageLabel.fontColor = .white
         messageLabel.horizontalAlignmentMode = .center
+        messageLabel.numberOfLines = 0
         messageLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 80)
         messageLabel.zPosition = 10
         messageLabel.alpha = 0
@@ -266,29 +267,46 @@ final class GameScene: SKScene, SKPhysicsContactDelegate {
             return
         }
 
+        if masks & PhysicsCategory.paddle != 0 {
+            handleBallHitPaddle()
+            return  // velocity is fully overridden; skip generic normalization
+        }
+
         if masks & PhysicsCategory.brick != 0 {
             let brickBody = bodyA.categoryBitMask == PhysicsCategory.brick ? bodyA : bodyB
             handleBallHitBrick(brickBody)
         }
 
-        // Normalize speed after any contact
+        // Normalize speed after wall/brick contact to prevent drift
         DispatchQueue.main.async { [weak self] in
             self?.ball?.normalizeSpeed()
         }
     }
 
+    private func handleBallHitPaddle() {
+        guard state == .playing else { return }
+        // Bypass physics reflection: compute deflection angle from hit position.
+        // offset ranges -1 (left edge) → 0 (center) → +1 (right edge)
+        let offset = (ball.position.x - paddle.position.x) / (Paddle.size.width / 2)
+        let clamped = max(-1, min(1, offset))
+        let maxAngle: CGFloat = .pi / 3   // 60° max from vertical
+        let angle = clamped * maxAngle
+        ball.physicsBody?.velocity = CGVector(
+            dx:  Ball.speed * sin(angle),
+            dy:  Ball.speed * cos(angle)  // always positive → always upward
+        )
+    }
+
     private func handleBallHitBrick(_ brickBody: SKPhysicsBody) {
         guard let brick = brickBody.node as? Brick else { return }
-        guard case .destructible = brick.brickType else { return }
+        guard brick.parent != nil else { return }  // already removed this frame
 
         brick.removeFromParent()
         bricks.removeAll { $0 === brick }
         score += 10
         updateHUD()
 
-        // Check win condition
-        let remainingDestructible = bricks.filter { $0.brickType.isDestructible }
-        if remainingDestructible.isEmpty {
+        if bricks.isEmpty {
             triggerLevelComplete()
         }
     }
@@ -302,8 +320,14 @@ final class GameScene: SKScene, SKPhysicsContactDelegate {
             triggerGameOver()
         } else {
             state = .waiting
-            resetBallPosition()
             showMessage("TAP TO LAUNCH")
+            // Defer position changes — setting body.position inside didBegin (a physics
+            // step callback) can be overridden by the engine before the frame completes.
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.paddle.position.x = self.size.width / 2
+                self.resetBallPosition()
+            }
         }
     }
 
@@ -316,8 +340,7 @@ final class GameScene: SKScene, SKPhysicsContactDelegate {
     private func triggerLevelComplete() {
         state = .levelComplete
         ball.physicsBody?.velocity = .zero
-        level += 1
-        showMessage("LEVEL COMPLETE!\nTap to continue")
+        showMessage("YOU WIN! 🎉\nScore: \(score)\nTap to play again")
     }
 
     private func resetGame() {
@@ -325,12 +348,13 @@ final class GameScene: SKScene, SKPhysicsContactDelegate {
         bricks.forEach { $0.removeFromParent() }
         bricks.removeAll()
 
-        if state == .gameOver {
+        if state == .gameOver || state == .levelComplete {
             lives = 3
             score = 0
         }
 
         setupBricks()
+        paddle.position.x = size.width / 2
         resetBallPosition()
         state = .waiting
         updateHUD()

@@ -42,7 +42,7 @@ final class Brick: SKSpriteNode {
         shape.fillColor = type.color
         shape.strokeColor = SKColor.black.withAlphaComponent(0.25)
         shape.lineWidth = 1
-        let rendered = SKView().texture(from: shape, rect: CGRect(origin: CGPoint(x: -Brick.size.width / 2, y: -Brick.size.height / 2), size: Brick.size))
+        let rendered = SKView().texture(from: shape, crop: CGRect(origin: CGPoint(x: -Brick.size.width / 2, y: -Brick.size.height / 2), size: Brick.size))
         self.texture = rendered
         self.color = .white
         self.colorBlendFactor = 0

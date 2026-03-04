@@ -29,7 +29,7 @@ final class Ball: SKSpriteNode {
         let texture = SKShapeNode(circleOfRadius: radius)
         texture.fillColor = .white
         texture.strokeColor = .clear
-        let rendered = SKView().texture(from: texture, rect: CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2))
+        let rendered = SKView().texture(from: texture, crop: CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2))
         self.texture = rendered
     }
 
